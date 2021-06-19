@@ -11,7 +11,7 @@ cd "含有 My Clippings.txt 的路径"
 python3 kindle2Readwise.py
 ```
 
-## 说明
+## 说明：
 `Old-Clippings.txt` 将被移动到自动生成保存 txt 文件的 Clippings 文件夹（如果没有则自动生成一个新的空白文件）
 
 `Old-Clippings.txt` 用于和新的 `My Clippings.txt` 对比，只上传之前没有导入的
