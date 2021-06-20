@@ -3,14 +3,20 @@ import os
 import time
 import shutil
 import csv
+from pathlib import Path
 
 def main():
     # 从 Kindle 中直接复制
     # shutil.copyfile('/Volumes/Kindle/documents/My Clippings.txt', '/Volumes/File/KindleTXT2CSV/My Clippings.txt')
-    timestr = time.strftime("%Y%m%d-%H%M%S")
-    wrtpath = './KindleCSV/' + timestr + '.csv'
-    # wrtpath = './test.csv'
     f = open('./My Clippings.txt')
+    # 生成 KindleCSV 和 Clippings 文件夹
+    pathCsv = 'KindleCSV'
+    mkdirPath(pathCsv)
+    pathClip = 'Clippings'
+    mkdirPath(pathClip)
+    timestr = time.strftime("%Y%m%d-%H%M%S")
+    wrtpath = './' + pathCsv + '/' + timestr + '.csv'
+    # wrtpath = './test.csv'
     # 跳过之前导入的
     num_lines_old = getLinesNum('./Old-Clippings.txt')
     for i in range(num_lines_old):
@@ -43,7 +49,7 @@ def analyseLine(f, wrtpath, timestr):
         newtitle = getTitle(line)
         newname = getName(line)
         newpage, noteType, line = getPageAndType(f, noteType)
-        newhighlight, line = getHighlightOrNote(f)
+        newhighlight, line = getHighlightOrNote(f, noteType)
         # 跳过书签，不保存
         if noteType == 'bookmark':
             meta.write('Bookmark: ' + newtitle + newpage + '\n')
@@ -76,12 +82,17 @@ def analyseLine(f, wrtpath, timestr):
     # 保存处理结果
     log(meta, noteNum, bookmarkNum, repeatNum, highlightNum, timestr)
 
+def mkdirPath(path):
+    if not os.path.exists(path):
+        os.mkdir(path)
+
 def writerCsv(wrtpath, datastr):
     with open(wrtpath, 'a', encoding="utf-8", newline='') as csvfile:
         writer = csv.writer(csvfile)
         writer.writerow(datastr)
 
 def log(meta, noteNum, bookmarkNum, repeatNum, highlightNum, timestr):
+    meta.write('\n' + '---------------------' + '\n')
     meta.write('noteNum: ' + str(noteNum) + '\n')
     meta.write('bookmark: ' + str(bookmarkNum) + '\n')
     meta.write('repeatNum: ' + str(repeatNum) + '\n')
@@ -97,11 +108,21 @@ def getLinesNum(fileName):
     return num_lines
 
 def getTitle(line):
-    return line.rsplit('(', 1)[0]
-
+    if line[:-1][-2:] != '))':
+        t = line.rsplit('(', 1)[0]
+    # 中英混名
+    else:
+        t = line.rsplit('(', 2)[0]
+    return t
+    
 def getName(line):
-    name = line.rsplit('(', 1)[1]
-    name = name.rsplit(')', 1)[0]
+    if line[:-1][-2:] != '))':
+        name = line.rsplit('(', 1)[1]
+        name = name.rsplit(')', 1)[0]
+    # 中英混名
+    else:
+        name = line.rsplit('(', 2)[1] + line.rsplit('(', 2)[2]
+        name = name[:-3]
     return name
 
 def getPageAndType(f, noteType):
@@ -117,12 +138,20 @@ def getPageAndType(f, noteType):
         noteType = 'bookmark'
     return page, noteType, line
 
-def getHighlightOrNote(f):
+def getHighlightOrNote(f, noteType):
     line = f.readline()
     line = f.readline()
     h = line[:-1]
-    line = f.readline()
-    line = f.readline()
+    if noteType != 'note':
+        line = f.readline()
+        line = f.readline()
+    # 笔记类型有多行的问题
+    else:
+        line = f.readline()
+        while line[:2] != '==':
+            h = h + '\n' + line[:-1]
+            line = f.readline()
+        line = f.readline()
     return h, line
 
 
