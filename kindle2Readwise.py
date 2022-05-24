@@ -34,6 +34,7 @@ def analyseLine(f, wrtpath, timestr):
     noteNum = 0
     bookmarkNum = 0
     repeatNum = 0
+    nullHighlight = 0
     # 初始配置，CSV 表头
     title = "Title"
     name = "Author"
@@ -47,6 +48,7 @@ def analyseLine(f, wrtpath, timestr):
     while line:
         noteType = 'highlight'
         newtitle = getTitle(line)
+        print('page', page)
         newname = getName(line)
         newpage, noteType, line = getPageAndType(f, noteType)
         newhighlight, line = getHighlightOrNote(f, noteType)
@@ -65,6 +67,10 @@ def analyseLine(f, wrtpath, timestr):
             repeatNum += 1
             meta.write(page + ': ' + highlight + '\n')
             meta.write(newpage + ': ' + newhighlight + '\n')
+        # 空白 highlight
+        elif highlight == '':
+            nullHighlight += 1
+            meta.write(page + ': nullHighlight' + '\n')
         else:
             highlightNum += 1
             datastr = [title, name, page, highlight, note]
@@ -80,7 +86,7 @@ def analyseLine(f, wrtpath, timestr):
         datastr = [title, name, page, highlight, note]
         writerCsv(wrtpath, datastr)
     # 保存处理结果
-    log(meta, noteNum, bookmarkNum, repeatNum, highlightNum, timestr)
+    log(meta, noteNum, bookmarkNum, repeatNum, nullHighlight, highlightNum, timestr)
 
 def mkdirPath(path):
     if not os.path.exists(path):
@@ -91,11 +97,12 @@ def writerCsv(wrtpath, datastr):
         writer = csv.writer(csvfile)
         writer.writerow(datastr)
 
-def log(meta, noteNum, bookmarkNum, repeatNum, highlightNum, timestr):
+def log(meta, noteNum, bookmarkNum, repeatNum, nullHighlight, highlightNum, timestr):
     meta.write('\n' + '---------------------' + '\n')
     meta.write('noteNum: ' + str(noteNum) + '\n')
     meta.write('bookmark: ' + str(bookmarkNum) + '\n')
     meta.write('repeatNum: ' + str(repeatNum) + '\n')
+    meta.write('nullHighlight: ' + str(nullHighlight) + '\n')
     meta.write('highlightNum: ' + str(highlightNum) + '\n')
     meta.write('---------------------' + timestr + '\n\n\n')
 
@@ -128,13 +135,17 @@ def getName(line):
 def getPageAndType(f, noteType):
     # 空白行
     line = f.readline()
-    page = re.split('#|-', line)[2]
-    if len(page) > 6:
-        page, noteType = page.split(' ', 1)
+    a = line.split('#', 1)[1]
+    if '-' in a:
+        page = re.split('#|-', line)[2]
+    else:
+        page, noteType = a.split('的', 1)
         noteType = noteType.split(' ', 1)[0]
-    if noteType == '的笔记':
+    if noteType == '笔记':
+        page = page[:-1]
         noteType = 'note'
-    if noteType == '的书签':
+    if noteType == '书签':
+        page = page[:-1]
         noteType = 'bookmark'
     return page, noteType, line
 
@@ -142,16 +153,17 @@ def getHighlightOrNote(f, noteType):
     line = f.readline()
     line = f.readline()
     h = line[:-1]
-    if noteType != 'note':
-        line = f.readline()
-        line = f.readline()
+    # highlight 也有多行问题
+    # if noteType != 'note':
+    #     line = f.readline()
+    #     line = f.readline()
     # 笔记类型有多行的问题
-    else:
+    # else:
+    line = f.readline()
+    while line[:2] != '==':
+        h = h + '\n' + line[:-1]
         line = f.readline()
-        while line[:2] != '==':
-            h = h + '\n' + line[:-1]
-            line = f.readline()
-        line = f.readline()
+    line = f.readline()
     return h, line
 
 
