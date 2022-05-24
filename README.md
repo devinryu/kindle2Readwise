@@ -37,6 +37,8 @@ python3 kindle2Readwise.py
 ---
 
 直接从 Kindle 中复制文件到目标文件夹
+
 取消注释，更改对应路径
+
 ![image](https://user-images.githubusercontent.com/42215787/170085682-5e75c0ba-55b3-4a8f-ac32-2f9d0b9392cb.png)
 
